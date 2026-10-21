@@ -1,0 +1,14 @@
+{
+  "name": "ispacs-aireport-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "iSPACS AIR 报告编辑前端演示",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "devDependencies": {
+    "vite": "^7.1.12"
+  }
+}
