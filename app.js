@@ -159,6 +159,7 @@ const state = {
   currentView: 'air',
   selectedPatient: 1,
   selectedLink: 1,
+  pendingDiagnosisDeleteId: null,
   patientQuery: '',
   templateQuery: '',
   templateTab: 'air',
@@ -205,6 +206,7 @@ function loadAirDraft(patientId) {
   state.findings = structuredClone(source.findings);
   state.diagnoses = structuredClone(source.diagnoses);
   state.selectedLink = state.findings[0]?.id || 0;
+  state.pendingDiagnosisDeleteId = null;
   state.undoStack = [];
   state.redoStack = [];
 }
@@ -471,17 +473,41 @@ function renderReport() {
   document.querySelectorAll('.delete-line').forEach(btn => btn.addEventListener('click', (event) => {
     event.stopPropagation(); deleteLine(btn.dataset.kind, Number(btn.dataset.id));
   }));
+  document.querySelectorAll('.inline-delete-choice').forEach(choice => {
+    const id = Number(choice.dataset.id);
+    choice.querySelector('.inline-delete-cancel').addEventListener('click', () => {
+      state.pendingDiagnosisDeleteId = null;
+      renderReport();
+    });
+    choice.querySelector('.inline-delete-only').addEventListener('click', () => applyDiagnosisDeletion(id, false));
+    choice.querySelector('.inline-delete-linked')?.addEventListener('click', () => applyDiagnosisDeletion(id, true));
+  });
   updateHistoryButtons();
 }
 
 function selectReportLink(id) {
+  if (state.pendingDiagnosisDeleteId && state.pendingDiagnosisDeleteId !== id) {
+    state.pendingDiagnosisDeleteId = null;
+    state.selectedLink = id;
+    renderReport();
+    return;
+  }
   state.selectedLink = id;
   document.querySelectorAll('.report-line').forEach(line => line.classList.toggle('selected', Number(line.dataset.id) === id));
 }
 
 function reportLine(item, kind, index = 0) {
   const number = kind === 'diagnosis' ? `<span class="diagnosis-number">${index + 1}、</span>` : '';
-  return `<div class="report-line ${item.id === state.selectedLink ? 'selected' : ''}" data-id="${item.id}" data-kind="${kind}">${number}<span class="line-text" contenteditable="true" spellcheck="false">${item.text}</span><button class="delete-line" data-kind="${kind}" data-id="${item.id}" aria-label="删除该条">×</button></div>`;
+  const hasLinkedFinding = state.findings.some(finding => finding.id === item.id);
+  const inlineDelete = kind === 'diagnosis' && state.pendingDiagnosisDeleteId === item.id ? `<div class="inline-delete-choice" data-id="${item.id}" role="group" aria-label="诊断意见删除方式">
+    <span>${hasLinkedFinding ? '是否同步删除对应的影像所见？' : '未找到对应的影像所见，将仅删除当前诊断。'}</span>
+    <div class="inline-delete-actions">
+      <button class="inline-delete-cancel">取消</button>
+      <button class="inline-delete-only">仅删诊断</button>
+      <button class="inline-delete-linked" ${hasLinkedFinding ? '' : 'disabled'}>同步删除所见</button>
+    </div>
+  </div>` : '';
+  return `<div class="report-line ${item.id === state.selectedLink ? 'selected' : ''}" data-id="${item.id}" data-kind="${kind}">${number}<span class="line-text" contenteditable="true" spellcheck="false">${item.text}</span><button class="delete-line" data-kind="${kind}" data-id="${item.id}" aria-label="删除该条">×</button></div>${inlineDelete}`;
 }
 
 function cleanReportItem(text) {
@@ -505,6 +531,7 @@ function restoreReport(snapshot) {
   state.findings = structuredClone(snapshot.findings);
   state.diagnoses = structuredClone(snapshot.diagnoses);
   state.selectedLink = 0;
+  state.pendingDiagnosisDeleteId = null;
   persistCurrentAirDraft();
 }
 
@@ -558,7 +585,9 @@ function insertTemplate(tab, index) {
 
 function deleteLine(kind, id) {
   if (kind === 'diagnosis') {
-    openDiagnosisDeleteDialog(id);
+    state.selectedLink = id;
+    state.pendingDiagnosisDeleteId = id;
+    renderReport();
     return;
   }
   saveUndo();
@@ -577,25 +606,10 @@ function applyDiagnosisDeletion(id, syncFinding) {
   state.diagnoses = state.diagnoses.filter(item => item.id !== id);
   if (syncFinding) state.findings = state.findings.filter(item => item.id !== id);
   state.selectedLink = 0;
+  state.pendingDiagnosisDeleteId = null;
   persistCurrentAirDraft();
-  document.querySelector('#modal-root').innerHTML = '';
   renderReport();
   toast(syncFinding ? '已删除诊断意见及对应影像所见' : '已删除诊断意见，关联影像所见已保留');
-}
-
-function openDiagnosisDeleteDialog(id) {
-  const hasLinkedFinding = state.findings.some(item => item.id === id);
-  document.querySelector('#modal-root').innerHTML = `<div class="modal-backdrop"><section class="modal delete-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-dialog-title">
-    <div class="modal-head"><span id="delete-dialog-title">删除诊断意见</span><button class="modal-close" aria-label="关闭">×</button></div>
-    <div class="modal-body"><strong>是否同步删除对应的影像所见？</strong><p>${hasLinkedFinding ? '该诊断意见存在明确关联的影像所见，请选择删除方式。' : '未找到明确关联的影像所见，将仅删除当前诊断意见。'}</p></div>
-    <div class="modal-actions"><button class="btn modal-cancel">取消</button><button class="btn delete-only">仅删除诊断意见</button><button class="btn danger delete-linked" ${hasLinkedFinding ? '' : 'disabled'}>同步删除影像所见</button></div>
-  </section></div>`;
-  const close = () => { document.querySelector('#modal-root').innerHTML = ''; };
-  document.querySelector('.modal-close').addEventListener('click', close);
-  document.querySelector('.modal-cancel').addEventListener('click', close);
-  document.querySelector('.modal-backdrop').addEventListener('click', event => { if (event.target.classList.contains('modal-backdrop')) close(); });
-  document.querySelector('.delete-only').addEventListener('click', () => applyDiagnosisDeletion(id, false));
-  document.querySelector('.delete-linked')?.addEventListener('click', () => { if (hasLinkedFinding) applyDiagnosisDeletion(id, true); });
 }
 
 function bindEvents() {

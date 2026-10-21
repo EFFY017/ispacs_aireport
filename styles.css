@@ -172,6 +172,13 @@ button { color: inherit; }
 .report-line[data-kind="diagnosis"] .line-text { display:inline-block; width:calc(100% - 36px); vertical-align:top; }
 .line-text:focus { caret-color:#1677f5; }
 .diagnosis-number { display:inline-block; width:30px; }
+.inline-delete-choice { margin:3px 6px 8px 40px; padding:8px 10px; display:flex; align-items:center; gap:10px; border:1px solid #d7e5f6; border-left:3px solid #6aa7f7; border-radius:4px; background:#f7faff; color:#56657a; font-size:12px; }
+.inline-delete-choice > span { flex:1; min-width:0; }
+.inline-delete-actions { display:flex; flex:0 0 auto; gap:6px; }
+.inline-delete-actions button { height:27px; padding:0 10px; border:1px solid #bfd4f1; border-radius:4px; background:#fff; color:#3972b8; cursor:pointer; font-size:12px; white-space:nowrap; }
+.inline-delete-actions button:hover { background:#edf5ff; }
+.inline-delete-actions .inline-delete-linked { color:#d94c47; border-color:#efb5b2; }
+.inline-delete-actions button:disabled { opacity:.45; cursor:not-allowed; background:#fff; }
 .generation-state { width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; border:1px dashed #cbd9eb; border-radius:6px; background:#f8fbff; color:#68768b; text-align:center; }
 .generation-state .generation-mark { width:48px; height:48px; display:grid; place-items:center; margin-bottom:13px; border-radius:50%; background:#eaf3ff; color:#267cf0; font-size:24px; font-weight:700; }
 .generation-state.failed .generation-mark { background:#fff0ee; color:#eb5b4f; }
@@ -256,8 +263,3 @@ button { color: inherit; }
 .modal-body { padding:20px; color:#4b5668; font-size:14px; line-height:1.8; white-space:pre-line; }
 .modal-actions { display:flex; justify-content:flex-end; gap:10px; padding:0 20px 20px; }
 .modal-actions .btn { height:36px; padding:0 18px; font-size:14px; }
-.btn.danger { color:#fff; border-color:#e55050; background:linear-gradient(180deg,#f16b63,#df4945); box-shadow:0 4px 10px rgba(222,73,69,.16); }
-.btn.danger:hover { background:linear-gradient(180deg,#eb625b,#d9403c); }
-.delete-dialog { width:min(620px, calc(100vw - 40px)); }
-.delete-dialog .modal-body strong { display:block; color:#26354b; font-size:16px; }
-.delete-dialog .modal-body p { margin:8px 0 0; color:#7a8798; }
