@@ -179,7 +179,7 @@ function rightRailMarkup(isPacs) {
 
 function renderApp() {
   document.querySelector('#app').innerHTML = `
-    <main class="app-shell">
+    <div class="viewport-stage"><main class="app-shell">
       <aside class="worklist panel" aria-label="检查列表">
         <section class="filters">
           <div class="filter-row two"><div class="select-like">全部 <span>×</span></div><div class="select-like">检查类型</div></div>
@@ -211,7 +211,7 @@ function renderApp() {
 
         ${state.currentView === 'air' ? airViewMarkup() : pacsViewMarkup()}
       </section>
-    </main>`;
+    </main></div>`;
   renderPatients();
   if (state.currentView === 'air') {
     renderTemplates();
@@ -220,6 +220,12 @@ function renderApp() {
     renderPacsTemplates();
   }
   bindEvents();
+  fitInterface();
+}
+
+function fitInterface() {
+  const scale = Math.min(window.innerWidth / 1619, window.innerHeight / 971);
+  document.documentElement.style.setProperty('--ui-scale', String(scale));
 }
 
 function renderPatients() {
@@ -281,8 +287,21 @@ function renderReport() {
 }
 
 function reportLine(item, kind, index = 0) {
-  const number = kind === 'diagnosis' ? `<span class="diagnosis-number">${index + 1}.</span>` : '';
+  const number = kind === 'diagnosis' ? `<span class="diagnosis-number">${index + 1}、</span>` : '';
   return `<div class="report-line ${item.id === state.selectedLink ? 'selected' : ''}" data-id="${item.id}" data-kind="${kind}">${number}<span class="line-text" contenteditable="true" spellcheck="false">${item.text}</span><button class="delete-line" data-kind="${kind}" data-id="${item.id}" aria-label="删除该条">×</button></div>`;
+}
+
+function cleanReportItem(text) {
+  return text.trim().replace(/^\d+[.、]\s*/, '').replace(/[。；;\s]+$/, '');
+}
+
+function formatFindings(items) {
+  const content = items.map(item => cleanReportItem(item.text)).filter(Boolean).join('；');
+  return content ? `${content}。` : '';
+}
+
+function formatDiagnoses(items) {
+  return items.map(item => cleanReportItem(item.text)).filter(Boolean).map((text, index) => `${index + 1}、${text}。`).join('\n');
 }
 
 function saveUndo() {
@@ -332,8 +351,8 @@ function bindEvents() {
   });
   document.querySelector('#quote-pacs')?.addEventListener('click', () => {
     const draft = getPacsDraft();
-    draft.findings = state.findings.map(item => item.text).join('\n');
-    draft.diagnosis = state.diagnoses.map(item => item.text).join('\n');
+    draft.findings = formatFindings(state.findings);
+    draft.diagnosis = formatDiagnoses(state.diagnoses);
     draft.imported = true; state.currentView = 'pacs'; renderApp(); toast('AIR 报告已同步到 PACS 编辑框，尚未发布');
   });
   document.querySelector('#hemorrhage-card')?.addEventListener('click', () => openModal('脑出血 AI 辅助诊断', '本次检查未检出明确颅内出血征象。\n\n演示说明：进入专项分析前，当前 AIR 草稿已自动暂存。'));
@@ -341,7 +360,12 @@ function bindEvents() {
   document.querySelector('#pacs-findings')?.addEventListener('input', e => { getPacsDraft().findings = e.target.value; });
   document.querySelector('#pacs-diagnosis')?.addEventListener('input', e => { getPacsDraft().diagnosis = e.target.value; });
   document.querySelector('#pacs-template-search')?.addEventListener('input', e => renderPacsTemplates(e.target.value));
-  document.querySelectorAll('[data-generic]').forEach(btn => btn.addEventListener('click', () => toast(`${btn.dataset.generic}：演示操作已响应`)));
+  document.querySelectorAll('[data-generic]').forEach(btn => btn.addEventListener('click', () => {
+    if (state.currentView === 'pacs' && btn.dataset.generic === 'AI 诊断') {
+      state.currentView = 'air'; renderApp(); toast('已从 PACS 返回当前检查的 AIR 报告'); return;
+    }
+    toast(`${btn.dataset.generic}：演示操作已响应`);
+  }));
   document.querySelectorAll('.rail-btn').forEach(btn => btn.addEventListener('click', () => { document.querySelectorAll('.rail-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }));
 }
 
@@ -349,8 +373,9 @@ function organizeReport() {
   saveUndo();
   const seen = new Set();
   state.findings = state.findings.filter(item => { const normalized = item.text.replace(/\s/g,''); if (seen.has(normalized)) return false; seen.add(normalized); return true; });
-  state.findings = state.findings.map(item => ({ ...item, text: /[。；]$/.test(item.text) ? item.text : `${item.text}。` }));
-  state.diagnoses = state.diagnoses.map(item => ({ ...item, text: /[。；]$/.test(item.text) ? item.text : `${item.text}。` }));
+  const combinedFindings = formatFindings(state.findings);
+  state.findings = combinedFindings ? [{ id: state.findings[0]?.id || 1, text: combinedFindings }] : [];
+  state.diagnoses = state.diagnoses.map(item => ({ ...item, text: `${cleanReportItem(item.text)}。` })).filter(item => item.text !== '。');
   state.selectedLink = 0; renderReport(); toast('报告已基于当前编辑内容完成整理，可撤销');
 }
 
@@ -367,4 +392,5 @@ function openModal(title, content, confirm = false) {
   if (confirm) document.querySelector('.modal-confirm').addEventListener('click', () => { close(); toast('已引用到 PACS 报告编辑框，请继续确认并发布'); });
 }
 
+window.addEventListener('resize', fitInterface);
 renderApp();
