@@ -28,6 +28,34 @@ const templates = [
   { name: "眶内壁凹陷", finding: "一侧眶内壁局部凹陷。", diagnosis: "眶内壁凹陷。", source: "AIR默认" }
 ];
 
+const templateLibraries = {
+  air: templates.map(template => ({ ...template, source: 'AIR 模板' })),
+  personal: [
+    { name: '儿童颅脑未见异常', finding: '双侧大脑半球对称，脑实质未见明显异常密度影，脑室系统形态正常。', diagnosis: '儿童颅脑 CT 平扫未见明显异常。', source: '个人模板' },
+    { name: '老年性脑萎缩', finding: '脑沟、脑裂增宽，脑室系统对称性扩大，中线结构居中。', diagnosis: '老年性脑萎缩。', source: '个人模板' },
+    { name: '多发腔隙灶', finding: '双侧基底节区及放射冠见多发点片状低密度灶。', diagnosis: '双侧多发腔隙性脑梗死灶。', source: '个人模板' },
+    { name: '陈旧性脑梗死', finding: '脑实质内见片状低密度影，边界清楚，邻近脑沟增宽。', diagnosis: '陈旧性脑梗死。', source: '个人模板' },
+    { name: '鼻窦炎伴积液', finding: '鼻窦黏膜增厚，窦腔内见液平。', diagnosis: '鼻窦炎伴积液。', source: '个人模板' },
+    { name: '颅骨术后改变', finding: '颅骨局部骨质缺损，可见术后内固定影。', diagnosis: '颅骨术后改变。', source: '个人模板' },
+    { name: '透明隔腔', finding: '透明隔腔可见，脑室系统未见明显扩张。', diagnosis: '透明隔腔。', source: '个人模板' },
+    { name: '双侧乳突炎', finding: '双侧乳突气房透亮度减低，部分气房内见软组织密度影。', diagnosis: '双侧乳突炎。', source: '个人模板' }
+  ],
+  public: [
+    { name: '颅脑 CT 平扫正常', finding: '脑实质密度均匀，脑室系统形态正常，中线结构居中。', diagnosis: '颅脑 CT 平扫未见明显异常。', source: '公共模板' },
+    { name: '脑出血', finding: '脑实质内见高密度影，周围可见低密度水肿带。', diagnosis: '脑出血。', source: '公共模板' },
+    { name: '蛛网膜下腔出血', finding: '脑沟及脑池内见条片状高密度影。', diagnosis: '蛛网膜下腔出血。', source: '公共模板' },
+    { name: '硬膜下血肿', finding: '颅板下见新月形高密度影，邻近脑组织受压。', diagnosis: '硬膜下血肿。', source: '公共模板' },
+    { name: '脑梗死', finding: '脑实质内见片状低密度影，局部灰白质界限欠清。', diagnosis: '脑梗死。', source: '公共模板' },
+    { name: '脑白质疏松', finding: '双侧脑室旁白质区见对称性斑片状低密度影。', diagnosis: '脑白质疏松。', source: '公共模板' },
+    { name: '蛛网膜囊肿', finding: '局部蛛网膜下腔增宽，呈脑脊液密度。', diagnosis: '蛛网膜囊肿。', source: '公共模板' },
+    { name: '颅内钙化', finding: '颅内见点状或结节状高密度钙化影。', diagnosis: '颅内钙化。', source: '公共模板' },
+    { name: '颅骨骨折', finding: '颅骨骨质连续性中断，可见线样透亮影。', diagnosis: '颅骨骨折。', source: '公共模板' },
+    { name: '副鼻窦炎', finding: '副鼻窦黏膜增厚，窦腔透亮度减低。', diagnosis: '副鼻窦炎。', source: '公共模板' },
+    { name: '鼻中隔偏曲', finding: '鼻中隔偏向一侧，双侧鼻腔不对称。', diagnosis: '鼻中隔偏曲。', source: '公共模板' },
+    { name: '乳突炎', finding: '乳突气房透亮度减低，部分气房融合。', diagnosis: '乳突炎。', source: '公共模板' }
+  ]
+};
+
 const pacsTemplates = [
   "颅脑CT平扫未见异常", "脑萎缩", "脑白质改变", "腔隙性脑梗死灶", "陈旧性脑梗死",
   "脑出血", "硬膜下血肿", "蛛网膜下腔出血", "透明隔腔", "蛛网膜囊肿",
@@ -117,6 +145,7 @@ const state = {
   selectedLink: 1,
   patientQuery: '',
   templateQuery: '',
+  templateTab: 'air',
   findings: structuredClone(airCaseReports[1].findings),
   diagnoses: structuredClone(airCaseReports[1].diagnoses),
   undoStack: [],
@@ -178,7 +207,12 @@ function airViewMarkup() {
       <div class="editor-layout">
         <aside class="template-panel">
           <h2 class="section-title">快捷模板</h2>
-          <label class="template-search"><input id="template-search" placeholder="搜索模板关键词" value="${state.templateQuery}"/>${icon('search')}</label>
+          <div class="template-tabs" role="tablist" aria-label="快捷模板分类">
+            <button class="${state.templateTab === 'air' ? 'active' : ''}" role="tab" aria-selected="${state.templateTab === 'air'}" data-template-tab="air">AIR 模板</button>
+            <button class="${state.templateTab === 'personal' ? 'active' : ''}" role="tab" aria-selected="${state.templateTab === 'personal'}" data-template-tab="personal">个人模板</button>
+            <button class="${state.templateTab === 'public' ? 'active' : ''}" role="tab" aria-selected="${state.templateTab === 'public'}" data-template-tab="public">公共模板</button>
+          </div>
+          <label class="template-search"><input id="template-search" placeholder="搜索当前模板" value="${state.templateQuery}"/>${icon('search')}</label>
           <div class="template-grid" id="template-grid"></div>
         </aside>
         <section class="editor-panel ${generationStatus !== 'ready' ? 'generation-mode' : ''}">
@@ -321,10 +355,15 @@ function renderPatients() {
 function renderTemplates() {
   const grid = document.querySelector('#template-grid');
   if (!grid) return;
+  const library = templateLibraries[state.templateTab] || templateLibraries.air;
   const q = state.templateQuery.trim().toLowerCase();
-  const list = templates.filter(t => !q || `${t.name}${t.finding}${t.diagnosis}${t.source}`.toLowerCase().includes(q));
-  grid.innerHTML = list.length ? list.map(t => `<button class="template-btn" data-template="${templates.indexOf(t)}" title="${t.source}：${t.finding} / ${t.diagnosis}"><span>${t.name}</span><span class="plus">＋</span></button>`).join('') : '<div class="loading-empty" style="grid-column:1/-1">未找到模板</div>';
-  document.querySelectorAll('[data-template]').forEach(btn => btn.addEventListener('click', () => insertTemplate(Number(btn.dataset.template))));
+  const list = library.map((template, index) => ({ ...template, index })).filter(t => !q || `${t.name}${t.finding}${t.diagnosis}${t.source}`.toLowerCase().includes(q));
+  grid.className = `template-grid ${state.templateTab === 'air' ? 'air-grid' : 'list-grid'}`;
+  grid.innerHTML = list.length ? list.map(t => state.templateTab === 'air'
+    ? `<button class="template-btn" data-template-index="${t.index}" title="${t.source}：${t.finding} / ${t.diagnosis}"><span>${t.name}</span><span class="plus">＋</span></button>`
+    : `<button class="template-list-btn" data-template-index="${t.index}" title="${t.finding} / ${t.diagnosis}">${icon('file','sm')}<span>${t.name}</span><span class="plus">＋</span></button>`
+  ).join('') : '<div class="loading-empty template-empty">未找到模板</div>';
+  document.querySelectorAll('[data-template-index]').forEach(btn => btn.addEventListener('click', () => insertTemplate(state.templateTab, Number(btn.dataset.templateIndex))));
 }
 
 function renderPacsTemplates(query = '') {
@@ -353,18 +392,42 @@ function renderReport() {
   document.querySelectorAll('.report-line').forEach(line => {
     line.addEventListener('click', (event) => {
       if (event.target.closest('.delete-line')) return;
-      state.selectedLink = Number(line.dataset.id); renderReport();
+      selectReportLink(Number(line.dataset.id));
     });
-    line.addEventListener('input', () => {
+    const editable = line.querySelector('.line-text');
+    let editStart = null;
+    editable.addEventListener('focus', () => {
+      editStart = reportSnapshot();
+      selectReportLink(Number(line.dataset.id));
+    });
+    editable.addEventListener('input', () => {
       const target = line.dataset.kind === 'finding' ? state.findings : state.diagnoses;
       const item = target.find(i => i.id === Number(line.dataset.id));
-      item.text = line.querySelector('.line-text').textContent.trim();
+      item.text = editable.textContent.trim();
+      persistCurrentAirDraft();
+    });
+    editable.addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        editable.blur();
+      }
+    });
+    editable.addEventListener('blur', () => {
+      if (!editStart) return;
+      const changed = JSON.stringify(editStart) !== JSON.stringify(reportSnapshot());
+      if (changed) pushUndoSnapshot(editStart);
+      editStart = null;
     });
   });
   document.querySelectorAll('.delete-line').forEach(btn => btn.addEventListener('click', (event) => {
     event.stopPropagation(); deleteLine(btn.dataset.kind, Number(btn.dataset.id));
   }));
   updateHistoryButtons();
+}
+
+function selectReportLink(id) {
+  state.selectedLink = id;
+  document.querySelectorAll('.report-line').forEach(line => line.classList.toggle('selected', Number(line.dataset.id) === id));
 }
 
 function reportLine(item, kind, index = 0) {
@@ -397,7 +460,11 @@ function restoreReport(snapshot) {
 }
 
 function saveUndo() {
-  state.undoStack.push(reportSnapshot());
+  pushUndoSnapshot(reportSnapshot());
+}
+
+function pushUndoSnapshot(snapshot) {
+  state.undoStack.push(structuredClone(snapshot));
   if (state.undoStack.length > 20) state.undoStack.shift();
   state.redoStack = [];
   updateHistoryButtons();
@@ -430,8 +497,10 @@ function redoReport() {
   toast('已重做上一步操作');
 }
 
-function insertTemplate(index) {
-  const t = templates[index]; saveUndo();
+function insertTemplate(tab, index) {
+  const t = (templateLibraries[tab] || templateLibraries.air)[index];
+  if (!t) return;
+  saveUndo();
   const nextId = Math.max(0, ...state.findings.map(i => i.id), ...state.diagnoses.map(i => i.id)) + 1;
   state.findings.push({ id: nextId, text: t.finding });
   state.diagnoses.push({ id: nextId, text: t.diagnosis });
@@ -457,6 +526,18 @@ function bindEvents() {
   });
   document.querySelector('#patient-search').addEventListener('keydown', e => { if (e.key === 'Enter') { state.patientQuery = e.target.value; renderPatients(); } });
   document.querySelector('#template-search')?.addEventListener('input', e => { state.templateQuery = e.target.value; renderTemplates(); });
+  document.querySelectorAll('[data-template-tab]').forEach(button => button.addEventListener('click', () => {
+    state.templateTab = button.dataset.templateTab;
+    state.templateQuery = '';
+    document.querySelectorAll('[data-template-tab]').forEach(tab => {
+      const active = tab.dataset.templateTab === state.templateTab;
+      tab.classList.toggle('active', active);
+      tab.setAttribute('aria-selected', String(active));
+    });
+    const search = document.querySelector('#template-search');
+    if (search) search.value = '';
+    renderTemplates();
+  }));
   document.querySelector('#negative-template')?.addEventListener('click', () => {
     saveUndo(); state.findings = [{ id: 101, text: '颅脑形态正常，脑实质未见明显异常密度影，中线结构居中。' }];
     state.diagnoses = [{ id: 101, text: '颅脑 CT 平扫未见明显异常。' }]; state.selectedLink = 101; renderReport(); toast('已替换为本院颅脑 CT 阴性模板，可继续编辑');
