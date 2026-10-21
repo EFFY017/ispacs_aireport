@@ -168,10 +168,10 @@ button { color: inherit; }
 
 .report-footer { border-top:1px solid #e7edf5; display:flex; justify-content:space-between; align-items:center; padding:0 20px; }
 .footer-left { display:flex; gap:12px; }
-.footer-right { display:flex; align-items:center; gap:12px; }
+.footer-right { display:flex; align-items:flex-start; gap:12px; }
 .footer-btn { height:44px; border:1px solid #dbe3ee; border-radius:5px; background:#fff; padding:0 19px; display:flex; align-items:center; justify-content:center; gap:9px; cursor:pointer; font-size:14px; white-space:nowrap; }
 .footer-btn:hover { background:#f7faff; }
-.footer-btn.regenerate { color:#1475ef; border-color:#9cc4fa; min-width:94px; }
+.footer-btn.regenerate { height:42px; color:#1475ef; border-color:#9cc4fa; min-width:94px; }
 #redo .icon { transform:scaleX(-1); }
 .organize { text-align:right; }
 .organize .btn { border-color:#d8e1ed; color:#2f3848; height:42px; }
