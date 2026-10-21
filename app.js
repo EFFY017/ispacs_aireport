@@ -34,6 +34,57 @@ const pacsTemplates = [
   "鼻窦炎", "鼻中隔偏曲", "颅骨骨瘤", "乳突炎", "颅内钙化"
 ];
 
+const airCaseReports = {
+  1: {
+    findings: [{ id: 1, text: "脑沟、脑裂增宽。" }, { id: 2, text: "中线结构居中。" }, { id: 3, text: "鼻中隔向左偏曲。" }],
+    diagnoses: [{ id: 1, text: "脑萎缩。" }, { id: 3, text: "鼻中隔偏曲。" }]
+  },
+  2: {
+    findings: [{ id: 1, text: "双侧半卵圆中心及脑室旁白质见斑片状低密度影。" }, { id: 2, text: "脑沟、脑裂稍增宽，脑室系统轻度扩大。" }, { id: 3, text: "双侧筛窦黏膜增厚。" }],
+    diagnoses: [{ id: 1, text: "脑白质改变。" }, { id: 2, text: "轻度脑萎缩。" }, { id: 3, text: "双侧筛窦炎。" }]
+  },
+  3: {
+    findings: [{ id: 1, text: "双侧大脑半球对称，脑实质未见明显异常密度影。" }, { id: 2, text: "脑室系统形态、大小正常，中线结构居中。" }, { id: 3, text: "颅骨骨质未见明显异常。" }],
+    diagnoses: [{ id: 1, text: "颅脑 CT 平扫未见明显异常。" }]
+  },
+  4: {
+    findings: [{ id: 1, text: "左侧基底节区见点状低密度灶，边界尚清。" }, { id: 2, text: "双侧脑室旁白质密度稍减低。" }, { id: 3, text: "中线结构居中。" }],
+    diagnoses: [{ id: 1, text: "左侧基底节区腔隙性脑梗死灶。" }, { id: 2, text: "轻度脑白质改变。" }]
+  },
+  5: {
+    findings: [{ id: 1, text: "右侧基底节区见片状低密度影，边缘清晰。" }, { id: 2, text: "脑沟、脑裂增宽，侧脑室稍扩大。" }, { id: 3, text: "右侧上颌窦内见囊状软组织密度影。" }],
+    diagnoses: [{ id: 1, text: "右侧基底节区陈旧性脑梗死。" }, { id: 2, text: "脑萎缩。" }, { id: 3, text: "右侧上颌窦黏膜下囊肿。" }]
+  },
+  6: {
+    findings: [{ id: 1, text: "左侧丘脑见类圆形高密度影，周围轻度低密度水肿。" }, { id: 2, text: "邻近侧脑室轻度受压，中线结构居中。" }, { id: 3, text: "余脑实质未见明显异常密度影。" }],
+    diagnoses: [{ id: 1, text: "左侧丘脑出血。" }]
+  },
+  7: {
+    findings: [{ id: 1, text: "左侧颞极蛛网膜下腔局限性增宽，呈脑脊液密度。" }, { id: 2, text: "邻近脑实质轻度受压。" }, { id: 3, text: "脑室系统形态、大小正常。" }],
+    diagnoses: [{ id: 1, text: "左侧颞极蛛网膜囊肿。" }]
+  },
+  8: {
+    findings: [{ id: 1, text: "双侧基底节区见多发点状脑脊液样低密度影。" }, { id: 2, text: "脑实质内未见急性出血征象。" }, { id: 3, text: "鼻中隔向右偏曲。" }],
+    diagnoses: [{ id: 1, text: "双侧基底节区血管周围间隙增宽。" }, { id: 3, text: "鼻中隔右偏。" }]
+  },
+  9: {
+    findings: [{ id: 1, text: "双侧苍白球区见对称性点状钙化。" }, { id: 2, text: "松果体区见小点状钙化。" }, { id: 3, text: "脑室系统及中线结构未见异常。" }],
+    diagnoses: [{ id: 1, text: "双侧苍白球及松果体生理性钙化。" }]
+  },
+  10: {
+    findings: [{ id: 1, text: "透明隔腔及第五脑室形成。" }, { id: 2, text: "双侧大脑半球脑实质密度均匀。" }, { id: 3, text: "中线结构居中。" }],
+    diagnoses: [{ id: 1, text: "透明隔腔及第五脑室。" }]
+  },
+  11: {
+    findings: [{ id: 1, text: "左侧蝶窦内见软组织密度影伴少量气泡。" }, { id: 2, text: "双侧乳突气房透亮度良好。" }, { id: 3, text: "颅内未见明显异常密度影。" }],
+    diagnoses: [{ id: 1, text: "左侧蝶窦炎。" }, { id: 3, text: "颅内未见明显异常。" }]
+  },
+  12: {
+    findings: [{ id: 1, text: "右侧额颞顶部颅板下见新月形脑脊液样低密度影。" }, { id: 2, text: "右侧额叶脑沟稍受压，中线结构无明显偏移。" }, { id: 3, text: "脑实质未见急性出血征象。" }],
+    diagnoses: [{ id: 1, text: "右侧额颞顶部硬膜下积液。" }]
+  }
+};
+
 const iconPaths = {
   power: '<path d="M12 2v10"/><path d="M6.3 5.3a8 8 0 1 0 11.4 0"/>',
   save: '<path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3"/><path d="M8 21v-7h8v7"/>',
@@ -66,18 +117,27 @@ const state = {
   selectedLink: 1,
   patientQuery: '',
   templateQuery: '',
-  findings: [
-    { id: 1, text: "脑沟、脑裂增宽。" },
-    { id: 2, text: "中线结构居中。" },
-    { id: 3, text: "鼻中隔向左偏曲。" }
-  ],
-  diagnoses: [
-    { id: 1, text: "脑萎缩。" },
-    { id: 3, text: "鼻中隔偏曲。" }
-  ],
+  findings: structuredClone(airCaseReports[1].findings),
+  diagnoses: structuredClone(airCaseReports[1].diagnoses),
   undoStack: [],
-  pacsDrafts: {}
+  pacsDrafts: {},
+  airDrafts: {}
 };
+
+function persistCurrentAirDraft() {
+  state.airDrafts[state.selectedPatient] = {
+    findings: structuredClone(state.findings),
+    diagnoses: structuredClone(state.diagnoses)
+  };
+}
+
+function loadAirDraft(patientId) {
+  const source = state.airDrafts[patientId] || airCaseReports[patientId] || airCaseReports[1];
+  state.findings = structuredClone(source.findings);
+  state.diagnoses = structuredClone(source.diagnoses);
+  state.selectedLink = state.findings[0]?.id || 0;
+  state.undoStack = [];
+}
 
 function tool(label, iconName, blue = false) {
   return `<button class="tool-action ${blue ? 'blue' : ''}" data-generic="${label}">${icon(iconName)}<span>${label}</span></button>`;
@@ -237,9 +297,9 @@ function renderPatients() {
       <div class="exam">${p.project}</div><button class="modality">CT</button>
     </div>`).join('') : '<div class="loading-empty">未找到匹配患者</div>';
   document.querySelectorAll('[data-patient]').forEach(row => row.addEventListener('click', () => {
-    saveUndo(); state.selectedPatient = Number(row.dataset.patient); state.selectedLink = 0;
-    state.findings = [{ id: 1, text: '脑沟、脑裂增宽。' }, { id: 2, text: '中线结构居中。' }, { id: 3, text: '鼻中隔向左偏曲。' }];
-    state.diagnoses = [{ id: 1, text: '脑萎缩。' }, { id: 3, text: '鼻中隔偏曲。' }];
+    persistCurrentAirDraft();
+    state.selectedPatient = Number(row.dataset.patient);
+    loadAirDraft(state.selectedPatient);
     renderApp(); toast(`已打开 ${patients.find(p => p.id === state.selectedPatient).name} 的${state.currentView === 'air' ? ' AIR' : ' PACS'}报告`);
   }));
 }
@@ -344,16 +404,19 @@ function bindEvents() {
     const snapshot = state.undoStack.pop(); if (!snapshot) return toast('暂无可撤销的操作');
     state.findings = snapshot.findings; state.diagnoses = snapshot.diagnoses; state.selectedLink = 0; renderReport(); toast('已撤销上一步操作');
   });
-  document.querySelector('#original-report')?.addEventListener('click', () => openModal('模型原始报告', '影像所见\n脑沟、脑裂增宽。中线结构居中。鼻中隔向左偏曲。\n\n诊断意见\n1. 脑萎缩。\n2. 鼻中隔偏曲。'));
+  document.querySelector('#original-report')?.addEventListener('click', () => {
+    const original = airCaseReports[state.selectedPatient] || airCaseReports[1];
+    openModal('模型原始报告', `影像所见\n${formatFindings(original.findings)}\n\n诊断意见\n${formatDiagnoses(original.diagnoses)}`);
+  });
   document.querySelector('#organize-report')?.addEventListener('click', organizeReport);
   document.querySelector('#back-pacs')?.addEventListener('click', () => {
-    state.currentView = 'pacs'; renderApp(); toast('已返回 PACS 编辑，PACS 原报告内容保持不变');
+    persistCurrentAirDraft(); state.currentView = 'pacs'; renderApp(); toast('已返回 PACS 编辑，PACS 原报告内容保持不变');
   });
   document.querySelector('#quote-pacs')?.addEventListener('click', () => {
     const draft = getPacsDraft();
     draft.findings = formatFindings(state.findings);
     draft.diagnosis = formatDiagnoses(state.diagnoses);
-    draft.imported = true; state.currentView = 'pacs'; renderApp(); toast('AIR 报告已同步到 PACS 编辑框，尚未发布');
+    draft.imported = true; persistCurrentAirDraft(); state.currentView = 'pacs'; renderApp(); toast('AIR 报告已同步到 PACS 编辑框，尚未发布');
   });
   document.querySelector('#hemorrhage-card')?.addEventListener('click', () => openModal('脑出血 AI 辅助诊断', '本次检查未检出明确颅内出血征象。\n\n演示说明：进入专项分析前，当前 AIR 草稿已自动暂存。'));
   document.querySelector('#air-entry')?.addEventListener('click', () => { state.currentView = 'air'; renderApp(); toast('已恢复当前检查的 AIR 工作草稿'); });
