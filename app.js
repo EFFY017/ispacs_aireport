@@ -120,8 +120,11 @@ const state = {
   findings: structuredClone(airCaseReports[1].findings),
   diagnoses: structuredClone(airCaseReports[1].diagnoses),
   undoStack: [],
+  redoStack: [],
   pacsDrafts: {},
-  airDrafts: {}
+  airDrafts: {},
+  generationStatus: { 11: 'failed' },
+  generationCount: {}
 };
 
 function persistCurrentAirDraft() {
@@ -137,6 +140,7 @@ function loadAirDraft(patientId) {
   state.diagnoses = structuredClone(source.diagnoses);
   state.selectedLink = state.findings[0]?.id || 0;
   state.undoStack = [];
+  state.redoStack = [];
 }
 
 function tool(label, iconName, blue = false) {
@@ -144,11 +148,22 @@ function tool(label, iconName, blue = false) {
 }
 
 function airViewMarkup() {
+  const generationStatus = state.generationStatus[state.selectedPatient] || 'ready';
+  const generationLabel = generationStatus === 'failed' ? '重试生成' : generationStatus === 'generating' ? '生成中…' : '重新生成';
+  const reportEditor = generationStatus === 'ready' ? `
+    <div class="report-section"><h3>影像所见</h3><div class="report-box" id="findings-box"></div></div>
+    <div class="report-section"><h3>诊断意见</h3><div class="report-box" id="diagnoses-box"></div></div>` : `
+    <div class="generation-state ${generationStatus}" role="status">
+      <span class="generation-mark">${generationStatus === 'failed' ? '!' : '···'}</span>
+      <h3>${generationStatus === 'failed' ? 'AIR 报告生成失败' : 'AIR 报告生成中'}</h3>
+      <p>${generationStatus === 'failed' ? '本次生成未成功，不影响 PACS 原报告编辑。可点击下方按钮重新生成。' : '正在基于当前检查重新生成报告，请稍候…'}</p>
+      ${generationStatus === 'failed' ? '<button class="btn primary" id="retry-generation">重试生成</button>' : ''}
+    </div>`;
   return `<section class="report-shell">
     <article class="report-main">
       <header class="report-head">
         <div class="report-title"><strong>AIR 报告</strong><span>颅脑 CT 平扫</span></div>
-        <div class="head-actions"><button class="btn" id="back-pacs">返回 PACS 编辑</button><button class="btn" id="negative-template">一键阴性模板</button><button class="btn primary" id="quote-pacs">引用到 PACS 报告</button></div>
+        <div class="head-actions"><button class="btn" id="back-pacs">返回 PACS 编辑</button><button class="btn" id="negative-template" ${generationStatus !== 'ready' ? 'disabled' : ''}>一键阴性模板</button><button class="btn primary" id="quote-pacs" ${generationStatus !== 'ready' ? 'disabled' : ''}>引用到 PACS 报告</button></div>
       </header>
       <div class="specialty-wrap">
         <section class="specialty-panel">
@@ -166,14 +181,13 @@ function airViewMarkup() {
           <label class="template-search"><input id="template-search" placeholder="搜索模板关键词" value="${state.templateQuery}"/>${icon('search')}</label>
           <div class="template-grid" id="template-grid"></div>
         </aside>
-        <section class="editor-panel">
-          <div class="report-section"><h3>影像所见</h3><div class="report-box" id="findings-box"></div></div>
-          <div class="report-section"><h3>诊断意见</h3><div class="report-box" id="diagnoses-box"></div></div>
+        <section class="editor-panel ${generationStatus !== 'ready' ? 'generation-mode' : ''}">
+          ${reportEditor}
         </section>
       </div>
       <footer class="report-footer">
-        <div class="footer-left"><button class="footer-btn" id="undo">${icon('undo','sm')}撤销</button><button class="footer-btn" id="original-report">${icon('copy','sm')}查看原始报告</button></div>
-        <div class="organize"><button class="btn" id="organize-report">整理报告</button><small>基于当前编辑内容整理报告</small></div>
+        <div class="footer-left"><button class="footer-btn" id="undo">${icon('undo','sm')}撤销</button><button class="footer-btn" id="redo">${icon('undo','sm')}重做</button><button class="footer-btn" id="original-report">${icon('copy','sm')}查看原始报告</button></div>
+        <div class="footer-right"><button class="footer-btn regenerate" id="regenerate-report" ${generationStatus === 'generating' ? 'disabled' : ''}>${generationLabel}</button><div class="organize"><button class="btn" id="organize-report" ${generationStatus !== 'ready' ? 'disabled' : ''}>整理报告</button><small>基于当前编辑内容整理报告</small></div></div>
       </footer>
     </article>
     ${rightRailMarkup(false)}
@@ -305,9 +319,11 @@ function renderPatients() {
 }
 
 function renderTemplates() {
+  const grid = document.querySelector('#template-grid');
+  if (!grid) return;
   const q = state.templateQuery.trim().toLowerCase();
   const list = templates.filter(t => !q || `${t.name}${t.finding}${t.diagnosis}${t.source}`.toLowerCase().includes(q));
-  document.querySelector('#template-grid').innerHTML = list.length ? list.map((t, i) => `<button class="template-btn" data-template="${templates.indexOf(t)}" title="${t.source}：${t.finding} / ${t.diagnosis}"><span>${t.name}</span><span class="plus">＋</span></button>`).join('') : '<div class="loading-empty" style="grid-column:1/-1">未找到模板</div>';
+  grid.innerHTML = list.length ? list.map(t => `<button class="template-btn" data-template="${templates.indexOf(t)}" title="${t.source}：${t.finding} / ${t.diagnosis}"><span>${t.name}</span><span class="plus">＋</span></button>`).join('') : '<div class="loading-empty" style="grid-column:1/-1">未找到模板</div>';
   document.querySelectorAll('[data-template]').forEach(btn => btn.addEventListener('click', () => insertTemplate(Number(btn.dataset.template))));
 }
 
@@ -328,6 +344,10 @@ function renderPacsTemplates(query = '') {
 function renderReport() {
   const findingBox = document.querySelector('#findings-box');
   const diagnosisBox = document.querySelector('#diagnoses-box');
+  if (!findingBox || !diagnosisBox) {
+    updateHistoryButtons();
+    return;
+  }
   findingBox.innerHTML = state.findings.map(item => reportLine(item, 'finding')).join('');
   diagnosisBox.innerHTML = state.diagnoses.map((item, index) => reportLine(item, 'diagnosis', index)).join('');
   document.querySelectorAll('.report-line').forEach(line => {
@@ -344,6 +364,7 @@ function renderReport() {
   document.querySelectorAll('.delete-line').forEach(btn => btn.addEventListener('click', (event) => {
     event.stopPropagation(); deleteLine(btn.dataset.kind, Number(btn.dataset.id));
   }));
+  updateHistoryButtons();
 }
 
 function reportLine(item, kind, index = 0) {
@@ -364,9 +385,49 @@ function formatDiagnoses(items) {
   return items.map(item => cleanReportItem(item.text)).filter(Boolean).map((text, index) => `${index + 1}、${text}。`).join('\n');
 }
 
+function reportSnapshot() {
+  return { findings: structuredClone(state.findings), diagnoses: structuredClone(state.diagnoses) };
+}
+
+function restoreReport(snapshot) {
+  state.findings = structuredClone(snapshot.findings);
+  state.diagnoses = structuredClone(snapshot.diagnoses);
+  state.selectedLink = 0;
+  persistCurrentAirDraft();
+}
+
 function saveUndo() {
-  state.undoStack.push({ findings: structuredClone(state.findings), diagnoses: structuredClone(state.diagnoses) });
+  state.undoStack.push(reportSnapshot());
   if (state.undoStack.length > 20) state.undoStack.shift();
+  state.redoStack = [];
+  updateHistoryButtons();
+}
+
+function updateHistoryButtons() {
+  const ready = (state.generationStatus[state.selectedPatient] || 'ready') === 'ready';
+  const undoButton = document.querySelector('#undo');
+  const redoButton = document.querySelector('#redo');
+  if (undoButton) undoButton.disabled = !ready || state.undoStack.length === 0;
+  if (redoButton) redoButton.disabled = !ready || state.redoStack.length === 0;
+}
+
+function undoReport() {
+  const snapshot = state.undoStack.pop();
+  if (!snapshot) return toast('暂无可撤销的操作');
+  state.redoStack.push(reportSnapshot());
+  restoreReport(snapshot);
+  renderReport();
+  toast('已撤销上一步操作，可点击重做恢复');
+}
+
+function redoReport() {
+  const snapshot = state.redoStack.pop();
+  if (!snapshot) return toast('暂无可重做的操作');
+  state.undoStack.push(reportSnapshot());
+  if (state.undoStack.length > 20) state.undoStack.shift();
+  restoreReport(snapshot);
+  renderReport();
+  toast('已重做上一步操作');
 }
 
 function insertTemplate(index) {
@@ -400,15 +461,15 @@ function bindEvents() {
     saveUndo(); state.findings = [{ id: 101, text: '颅脑形态正常，脑实质未见明显异常密度影，中线结构居中。' }];
     state.diagnoses = [{ id: 101, text: '颅脑 CT 平扫未见明显异常。' }]; state.selectedLink = 101; renderReport(); toast('已替换为本院颅脑 CT 阴性模板，可继续编辑');
   });
-  document.querySelector('#undo')?.addEventListener('click', () => {
-    const snapshot = state.undoStack.pop(); if (!snapshot) return toast('暂无可撤销的操作');
-    state.findings = snapshot.findings; state.diagnoses = snapshot.diagnoses; state.selectedLink = 0; renderReport(); toast('已撤销上一步操作');
-  });
+  document.querySelector('#undo')?.addEventListener('click', undoReport);
+  document.querySelector('#redo')?.addEventListener('click', redoReport);
   document.querySelector('#original-report')?.addEventListener('click', () => {
     const original = airCaseReports[state.selectedPatient] || airCaseReports[1];
     openModal('模型原始报告', `影像所见\n${formatFindings(original.findings)}\n\n诊断意见\n${formatDiagnoses(original.diagnoses)}`);
   });
   document.querySelector('#organize-report')?.addEventListener('click', organizeReport);
+  document.querySelector('#regenerate-report')?.addEventListener('click', regenerateReport);
+  document.querySelector('#retry-generation')?.addEventListener('click', regenerateReport);
   document.querySelector('#back-pacs')?.addEventListener('click', () => {
     persistCurrentAirDraft(); state.currentView = 'pacs'; renderApp(); toast('已返回 PACS 编辑，PACS 原报告内容保持不变');
   });
@@ -440,6 +501,56 @@ function organizeReport() {
   state.findings = combinedFindings ? [{ id: state.findings[0]?.id || 1, text: combinedFindings }] : [];
   state.diagnoses = state.diagnoses.map(item => ({ ...item, text: `${cleanReportItem(item.text)}。` })).filter(item => item.text !== '。');
   state.selectedLink = 0; renderReport(); toast('报告已基于当前编辑内容完成整理，可撤销');
+}
+
+function buildRegeneratedReport(patientId, count) {
+  const source = airCaseReports[patientId] || airCaseReports[1];
+  const wording = [
+    ['脑沟、脑裂', '脑沟及脑裂'],
+    ['中线结构居中', '中线结构未见明显偏移'],
+    ['脑室系统形态、大小正常', '脑室系统形态及大小未见明显异常'],
+    ['未见明显异常密度影', '未见确切异常密度影'],
+    ['未见异常密度影', '未见明确异常密度影'],
+    ['边界尚清', '边界较清'],
+    ['边缘清晰', '边界清楚'],
+    ['透亮度良好', '气化良好'],
+    ['无明显偏移', '未见明显偏移'],
+    ['生理性钙化', '钙化，考虑生理性']
+  ];
+  const revise = text => wording.reduce((result, [from, to]) => result.replaceAll(from, to), text);
+  const alternateOrder = count % 2 === 1;
+  const findings = structuredClone(source.findings).map(item => ({ ...item, text: revise(item.text) }));
+  const diagnoses = structuredClone(source.diagnoses).map(item => ({ ...item, text: revise(item.text) }));
+  return {
+    findings: alternateOrder ? findings.reverse() : findings,
+    diagnoses: alternateOrder && diagnoses.length > 1 ? diagnoses.reverse() : diagnoses
+  };
+}
+
+function regenerateReport() {
+  const patientId = state.selectedPatient;
+  const status = state.generationStatus[patientId] || 'ready';
+  if (status === 'generating') return;
+  if (status === 'ready') saveUndo();
+  state.generationStatus[patientId] = 'generating';
+  renderApp();
+
+  window.setTimeout(() => {
+    const nextCount = (state.generationCount[patientId] || 0) + 1;
+    const report = buildRegeneratedReport(patientId, nextCount);
+    state.generationCount[patientId] = nextCount;
+    state.generationStatus[patientId] = 'ready';
+    state.airDrafts[patientId] = structuredClone(report);
+    if (state.selectedPatient === patientId) {
+      state.findings = structuredClone(report.findings);
+      state.diagnoses = structuredClone(report.diagnoses);
+      state.selectedLink = state.findings[0]?.id || 0;
+      if (state.currentView === 'air') {
+        renderApp();
+        toast(status === 'failed' ? 'AIR 报告重试生成成功' : 'AIR 报告已重新生成，可撤销恢复上一版');
+      }
+    }
+  }, 650);
 }
 
 let toastTimer;
