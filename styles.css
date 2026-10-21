@@ -92,8 +92,21 @@ button { color: inherit; }
 .report-shell { display:grid; grid-template-columns:minmax(0,1fr) 37px; gap:8px; min-height:0; }
 .report-main { min-width:0; min-height:0; background:#fff; border:1px solid #e3eaf4; border-radius:5px; box-shadow:0 2px 12px rgba(62,91,130,.06); display:grid; grid-template-rows:70px 136px minmax(0,1fr) 111px; }
 .report-head { display:flex; align-items:center; justify-content:space-between; padding:0 18px; border-bottom:1px solid #e6edf6; }
-.report-title { display:flex; align-items:baseline; gap:15px; font-size:18px; font-weight:700; }
+.report-title { display:flex; align-items:center; gap:15px; font-size:18px; font-weight:700; }
 .report-title strong { color:#075ebf; font-size:23px; letter-spacing:.5px; }
+.report-exam-name { white-space:nowrap; }
+.air-model-switch { position:relative; min-width:275px; font-size:13px; font-weight:500; }
+.air-model-switch summary { height:36px; display:flex; align-items:center; justify-content:space-between; gap:14px; padding:0 12px; border:1px solid #9dc4fa; border-radius:5px; background:#fff; color:#235f9f; cursor:pointer; list-style:none; white-space:nowrap; }
+.air-model-switch summary::-webkit-details-marker { display:none; }
+.air-model-switch summary:hover { background:#f5f9ff; }
+.air-model-switch summary i { color:#7d8998; font-style:normal; font-weight:400; }
+.model-caret { color:#7a8da6; transition:transform .18s ease; }
+.air-model-switch[open] .model-caret { transform:rotate(180deg); }
+.air-model-menu { position:absolute; z-index:25; left:0; top:41px; width:280px; padding:6px; border:1px solid #dbe4ef; border-radius:6px; background:#fff; box-shadow:0 10px 28px rgba(37,57,86,.18); }
+.air-model-menu button { width:100%; min-height:40px; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:7px 10px; border:0; border-radius:4px; background:#fff; color:#344157; cursor:pointer; text-align:left; font-size:13px; }
+.air-model-menu button:hover { background:#f1f6fd; }
+.air-model-menu button.active { color:#1677f5; font-weight:700; background:#eef5ff; }
+.air-model-menu button b { font-size:14px; }
 .head-actions { display:flex; gap:11px; }
 .head-actions .btn { flex-shrink:0; }
 .btn { height:41px; border:1px solid #83b5ff; border-radius:5px; padding:0 22px; background:#fff; color:#1372ef; cursor:pointer; font-size:15px; white-space:nowrap; }
@@ -243,3 +256,8 @@ button { color: inherit; }
 .modal-body { padding:20px; color:#4b5668; font-size:14px; line-height:1.8; white-space:pre-line; }
 .modal-actions { display:flex; justify-content:flex-end; gap:10px; padding:0 20px 20px; }
 .modal-actions .btn { height:36px; padding:0 18px; font-size:14px; }
+.btn.danger { color:#fff; border-color:#e55050; background:linear-gradient(180deg,#f16b63,#df4945); box-shadow:0 4px 10px rgba(222,73,69,.16); }
+.btn.danger:hover { background:linear-gradient(180deg,#eb625b,#d9403c); }
+.delete-dialog { width:min(620px, calc(100vw - 40px)); }
+.delete-dialog .modal-body strong { display:block; color:#26354b; font-size:16px; }
+.delete-dialog .modal-body p { margin:8px 0 0; color:#7a8798; }

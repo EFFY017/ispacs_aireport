@@ -1,5 +1,5 @@
 const patients = [
-  { id: 1, name: "李*宁", gender: "女", age: 4, project: "颅脑CT平扫", date: "2026-10-20", source: "门诊", status: "AIR已完成" },
+  { id: 1, name: "李*宁", gender: "女", age: 4, project: "头胸CT联合平扫", date: "2026-10-20", source: "门诊", status: "AIR已完成", airModels: ["brain", "chest"] },
   { id: 2, name: "钟*仪", gender: "男", age: 66, project: "颅脑CT平扫", date: "2026-10-20", source: "门诊", status: "AIR已完成" },
   { id: 3, name: "华*", gender: "男", age: 71, project: "颅脑CT平扫", date: "2026-10-20", source: "门诊", status: "AIR已完成" },
   { id: 4, name: "吴*根", gender: "男", age: 69, project: "颅脑CT平扫", date: "2026-10-20", source: "门诊", status: "AIR已完成" },
@@ -113,6 +113,22 @@ const airCaseReports = {
   }
 };
 
+const chestCaseReports = {
+  1: {
+    findings: [
+      { id: 201, text: '胸廓对称，双肺纹理清晰。' },
+      { id: 202, text: '双肺未见明确实性结节及活动性病变。' },
+      { id: 203, text: '纵隔居中，未见明显肿大淋巴结。' }
+    ],
+    diagnoses: [{ id: 201, text: '胸部 CT 平扫未见明显异常。' }]
+  }
+};
+
+const airModelCatalog = {
+  brain: { label: '颅脑CT平扫AIR 基础模型', title: '颅脑 CT 平扫' },
+  chest: { label: '胸部CT平扫AIR 基础模型', title: '胸部 CT 平扫' }
+};
+
 const iconPaths = {
   power: '<path d="M12 2v10"/><path d="M6.3 5.3a8 8 0 1 0 11.4 0"/>',
   save: '<path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3"/><path d="M8 21v-7h8v7"/>',
@@ -152,19 +168,40 @@ const state = {
   redoStack: [],
   pacsDrafts: {},
   airDrafts: {},
-  generationStatus: { 11: 'failed' },
+  airModelByPatient: { 1: 'brain' },
+  generationStatus: { '11:brain': 'failed' },
   generationCount: {}
 };
 
+function availableAirModels(patientId = state.selectedPatient) {
+  return patients.find(patient => patient.id === patientId)?.airModels || ['brain'];
+}
+
+function currentAirModel(patientId = state.selectedPatient) {
+  const available = availableAirModels(patientId);
+  const selected = state.airModelByPatient[patientId] || available[0];
+  return available.includes(selected) ? selected : available[0];
+}
+
+function airReportKey(patientId = state.selectedPatient, model = currentAirModel(patientId)) {
+  return `${patientId}:${model}`;
+}
+
+function originalAirReport(patientId = state.selectedPatient, model = currentAirModel(patientId)) {
+  if (model === 'chest') return chestCaseReports[patientId] || chestCaseReports[1];
+  return airCaseReports[patientId] || airCaseReports[1];
+}
+
 function persistCurrentAirDraft() {
-  state.airDrafts[state.selectedPatient] = {
+  state.airDrafts[airReportKey()] = {
     findings: structuredClone(state.findings),
     diagnoses: structuredClone(state.diagnoses)
   };
 }
 
 function loadAirDraft(patientId) {
-  const source = state.airDrafts[patientId] || airCaseReports[patientId] || airCaseReports[1];
+  const model = currentAirModel(patientId);
+  const source = state.airDrafts[airReportKey(patientId, model)] || originalAirReport(patientId, model);
   state.findings = structuredClone(source.findings);
   state.diagnoses = structuredClone(source.diagnoses);
   state.selectedLink = state.findings[0]?.id || 0;
@@ -177,7 +214,21 @@ function tool(label, iconName, blue = false) {
 }
 
 function airViewMarkup() {
-  const generationStatus = state.generationStatus[state.selectedPatient] || 'ready';
+  const modelKey = currentAirModel();
+  const model = airModelCatalog[modelKey];
+  const modelOptions = availableAirModels();
+  const modelSelector = modelOptions.length > 1 ? `<details class="air-model-switch">
+    <summary aria-label="切换 AIR 模型"><span><i>模型：</i>${model.label}</span><span class="model-caret">⌄</span></summary>
+    <div class="air-model-menu" role="menu">${modelOptions.map(key => `<button class="${key === modelKey ? 'active' : ''}" role="menuitem" data-air-model="${key}"><span>${airModelCatalog[key].label}</span>${key === modelKey ? '<b>✓</b>' : ''}</button>`).join('')}</div>
+  </details>` : `<span class="report-exam-name">${model.title}</span>`;
+  const specialtyCards = modelKey === 'chest' ? `
+    <button class="specialty-card active" id="specialty-primary"><span class="specialty-icon">${icon('lungs')}</span><span><div class="specialty-name">肺结节 AI 辅助诊断</div><div class="specialty-link">查看结果 ›</div></span></button>
+    <button class="specialty-card disabled"><span class="specialty-icon">${icon('lungs')}</span><span><div class="specialty-name">肺炎 AI 辅助诊断</div><div class="specialty-muted">预留入口</div></span></button>
+    <button class="specialty-card disabled"><span class="specialty-icon">${icon('image')}</span><span><div class="specialty-name">胸部骨折 AI 辅助诊断</div><div class="specialty-muted">预留入口</div></span></button>` : `
+    <button class="specialty-card active" id="specialty-primary"><span class="specialty-icon">${icon('brain')}</span><span><div class="specialty-name">脑出血 AI 辅助诊断</div><div class="specialty-link">查看结果 ›</div></span></button>
+    <button class="specialty-card disabled"><span class="specialty-icon">${icon('brain')}</span><span><div class="specialty-name">颅脑 CTA</div><div class="specialty-muted">预留入口</div></span></button>
+    <button class="specialty-card disabled"><span class="specialty-icon">${icon('lungs')}</span><span><div class="specialty-name">脑 CTP</div><div class="specialty-muted">预留入口</div></span></button>`;
+  const generationStatus = state.generationStatus[airReportKey()] || 'ready';
   const generationLabel = generationStatus === 'failed' ? '重试生成' : generationStatus === 'generating' ? '生成中…' : '重新生成';
   const reportEditor = generationStatus === 'ready' ? `
     <div class="report-section"><h3>影像所见</h3><div class="report-box" id="findings-box"></div></div>
@@ -191,16 +242,14 @@ function airViewMarkup() {
   return `<section class="report-shell">
     <article class="report-main">
       <header class="report-head">
-        <div class="report-title"><strong>AIR 报告</strong><span>颅脑 CT 平扫</span></div>
+        <div class="report-title"><strong>AIR 报告</strong>${modelSelector}</div>
         <div class="head-actions"><button class="btn" id="back-pacs">返回 PACS 编辑</button><button class="btn" id="negative-template" ${generationStatus !== 'ready' ? 'disabled' : ''}>一键阴性模板</button><button class="btn primary" id="quote-pacs" ${generationStatus !== 'ready' ? 'disabled' : ''}>引用到 PACS 报告</button></div>
       </header>
       <div class="specialty-wrap">
         <section class="specialty-panel">
           <h2 class="section-title">AI 专项辅助分析</h2>
           <div class="specialty-cards">
-            <button class="specialty-card active" id="hemorrhage-card"><span class="specialty-icon">${icon('brain')}</span><span><div class="specialty-name">脑出血 AI 辅助诊断</div><div class="specialty-link">查看结果 ›</div></span></button>
-            <button class="specialty-card disabled"><span class="specialty-icon">${icon('brain')}</span><span><div class="specialty-name">颅脑 CTA</div><div class="specialty-muted">预留入口</div></span></button>
-            <button class="specialty-card disabled"><span class="specialty-icon">${icon('lungs')}</span><span><div class="specialty-name">脑 CTP</div><div class="specialty-muted">预留入口</div></span></button>
+            ${specialtyCards}
           </div>
         </section>
       </div>
@@ -471,7 +520,7 @@ function pushUndoSnapshot(snapshot) {
 }
 
 function updateHistoryButtons() {
-  const ready = (state.generationStatus[state.selectedPatient] || 'ready') === 'ready';
+  const ready = (state.generationStatus[airReportKey()] || 'ready') === 'ready';
   const undoButton = document.querySelector('#undo');
   const redoButton = document.querySelector('#redo');
   if (undoButton) undoButton.disabled = !ready || state.undoStack.length === 0;
@@ -508,16 +557,45 @@ function insertTemplate(tab, index) {
 }
 
 function deleteLine(kind, id) {
+  if (kind === 'diagnosis') {
+    openDiagnosisDeleteDialog(id);
+    return;
+  }
   saveUndo();
   if (kind === 'finding') {
     state.findings = state.findings.filter(i => i.id !== id);
     state.diagnoses = state.diagnoses.filter(i => i.id !== id);
     toast('已删除影像所见及明确关联的诊断意见');
-  } else {
-    state.diagnoses = state.diagnoses.filter(i => i.id !== id);
-    toast('已删除诊断意见，关联影像所见已保留');
   }
-  state.selectedLink = 0; renderReport();
+  state.selectedLink = 0;
+  persistCurrentAirDraft();
+  renderReport();
+}
+
+function applyDiagnosisDeletion(id, syncFinding) {
+  saveUndo();
+  state.diagnoses = state.diagnoses.filter(item => item.id !== id);
+  if (syncFinding) state.findings = state.findings.filter(item => item.id !== id);
+  state.selectedLink = 0;
+  persistCurrentAirDraft();
+  document.querySelector('#modal-root').innerHTML = '';
+  renderReport();
+  toast(syncFinding ? '已删除诊断意见及对应影像所见' : '已删除诊断意见，关联影像所见已保留');
+}
+
+function openDiagnosisDeleteDialog(id) {
+  const hasLinkedFinding = state.findings.some(item => item.id === id);
+  document.querySelector('#modal-root').innerHTML = `<div class="modal-backdrop"><section class="modal delete-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-dialog-title">
+    <div class="modal-head"><span id="delete-dialog-title">删除诊断意见</span><button class="modal-close" aria-label="关闭">×</button></div>
+    <div class="modal-body"><strong>是否同步删除对应的影像所见？</strong><p>${hasLinkedFinding ? '该诊断意见存在明确关联的影像所见，请选择删除方式。' : '未找到明确关联的影像所见，将仅删除当前诊断意见。'}</p></div>
+    <div class="modal-actions"><button class="btn modal-cancel">取消</button><button class="btn delete-only">仅删除诊断意见</button><button class="btn danger delete-linked" ${hasLinkedFinding ? '' : 'disabled'}>同步删除影像所见</button></div>
+  </section></div>`;
+  const close = () => { document.querySelector('#modal-root').innerHTML = ''; };
+  document.querySelector('.modal-close').addEventListener('click', close);
+  document.querySelector('.modal-cancel').addEventListener('click', close);
+  document.querySelector('.modal-backdrop').addEventListener('click', event => { if (event.target.classList.contains('modal-backdrop')) close(); });
+  document.querySelector('.delete-only').addEventListener('click', () => applyDiagnosisDeletion(id, false));
+  document.querySelector('.delete-linked')?.addEventListener('click', () => { if (hasLinkedFinding) applyDiagnosisDeletion(id, true); });
 }
 
 function bindEvents() {
@@ -538,14 +616,30 @@ function bindEvents() {
     if (search) search.value = '';
     renderTemplates();
   }));
+  document.querySelectorAll('[data-air-model]').forEach(button => button.addEventListener('click', () => {
+    const nextModel = button.dataset.airModel;
+    if (nextModel === currentAirModel()) return;
+    persistCurrentAirDraft();
+    state.airModelByPatient[state.selectedPatient] = nextModel;
+    loadAirDraft(state.selectedPatient);
+    renderApp();
+    toast(`已切换至${airModelCatalog[nextModel].label}`);
+  }));
   document.querySelector('#negative-template')?.addEventListener('click', () => {
-    saveUndo(); state.findings = [{ id: 101, text: '颅脑形态正常，脑实质未见明显异常密度影，中线结构居中。' }];
-    state.diagnoses = [{ id: 101, text: '颅脑 CT 平扫未见明显异常。' }]; state.selectedLink = 101; renderReport(); toast('已替换为本院颅脑 CT 阴性模板，可继续编辑');
+    saveUndo();
+    if (currentAirModel() === 'chest') {
+      state.findings = [{ id: 201, text: '胸廓对称，双肺纹理清晰，纵隔居中，未见明显肿大淋巴结。' }];
+      state.diagnoses = [{ id: 201, text: '胸部 CT 平扫未见明显异常。' }];
+    } else {
+      state.findings = [{ id: 101, text: '颅脑形态正常，脑实质未见明显异常密度影，中线结构居中。' }];
+      state.diagnoses = [{ id: 101, text: '颅脑 CT 平扫未见明显异常。' }];
+    }
+    state.selectedLink = state.findings[0].id; renderReport(); toast('已替换为当前 AIR 模型的阴性模板，可继续编辑');
   });
   document.querySelector('#undo')?.addEventListener('click', undoReport);
   document.querySelector('#redo')?.addEventListener('click', redoReport);
   document.querySelector('#original-report')?.addEventListener('click', () => {
-    const original = airCaseReports[state.selectedPatient] || airCaseReports[1];
+    const original = originalAirReport();
     openModal('模型原始报告', `影像所见\n${formatFindings(original.findings)}\n\n诊断意见\n${formatDiagnoses(original.diagnoses)}`);
   });
   document.querySelector('#organize-report')?.addEventListener('click', organizeReport);
@@ -560,7 +654,10 @@ function bindEvents() {
     draft.diagnosis = formatDiagnoses(state.diagnoses);
     draft.imported = true; persistCurrentAirDraft(); state.currentView = 'pacs'; renderApp(); toast('AIR 报告已同步到 PACS 编辑框，尚未发布');
   });
-  document.querySelector('#hemorrhage-card')?.addEventListener('click', () => openModal('脑出血 AI 辅助诊断', '本次检查未检出明确颅内出血征象。\n\n演示说明：进入专项分析前，当前 AIR 草稿已自动暂存。'));
+  document.querySelector('#specialty-primary')?.addEventListener('click', () => {
+    const chest = currentAirModel() === 'chest';
+    openModal(chest ? '肺结节 AI 辅助诊断' : '脑出血 AI 辅助诊断', `${chest ? '本次检查未检出明确肺结节征象。' : '本次检查未检出明确颅内出血征象。'}\n\n演示说明：进入专项分析前，当前 AIR 草稿已自动暂存。`);
+  });
   document.querySelector('#air-entry')?.addEventListener('click', () => { state.currentView = 'air'; renderApp(); toast('已恢复当前检查的 AIR 工作草稿'); });
   document.querySelector('#pacs-findings')?.addEventListener('input', e => { getPacsDraft().findings = e.target.value; });
   document.querySelector('#pacs-diagnosis')?.addEventListener('input', e => { getPacsDraft().diagnosis = e.target.value; });
@@ -584,8 +681,8 @@ function organizeReport() {
   state.selectedLink = 0; renderReport(); toast('报告已基于当前编辑内容完成整理，可撤销');
 }
 
-function buildRegeneratedReport(patientId, count) {
-  const source = airCaseReports[patientId] || airCaseReports[1];
+function buildRegeneratedReport(patientId, model, count) {
+  const source = originalAirReport(patientId, model);
   const wording = [
     ['脑沟、脑裂', '脑沟及脑裂'],
     ['中线结构居中', '中线结构未见明显偏移'],
@@ -610,19 +707,21 @@ function buildRegeneratedReport(patientId, count) {
 
 function regenerateReport() {
   const patientId = state.selectedPatient;
-  const status = state.generationStatus[patientId] || 'ready';
+  const model = currentAirModel(patientId);
+  const key = airReportKey(patientId, model);
+  const status = state.generationStatus[key] || 'ready';
   if (status === 'generating') return;
   if (status === 'ready') saveUndo();
-  state.generationStatus[patientId] = 'generating';
+  state.generationStatus[key] = 'generating';
   renderApp();
 
   window.setTimeout(() => {
-    const nextCount = (state.generationCount[patientId] || 0) + 1;
-    const report = buildRegeneratedReport(patientId, nextCount);
-    state.generationCount[patientId] = nextCount;
-    state.generationStatus[patientId] = 'ready';
-    state.airDrafts[patientId] = structuredClone(report);
-    if (state.selectedPatient === patientId) {
+    const nextCount = (state.generationCount[key] || 0) + 1;
+    const report = buildRegeneratedReport(patientId, model, nextCount);
+    state.generationCount[key] = nextCount;
+    state.generationStatus[key] = 'ready';
+    state.airDrafts[key] = structuredClone(report);
+    if (state.selectedPatient === patientId && currentAirModel(patientId) === model) {
       state.findings = structuredClone(report.findings);
       state.diagnoses = structuredClone(report.diagnoses);
       state.selectedLink = state.findings[0]?.id || 0;
