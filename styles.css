@@ -148,8 +148,58 @@ button { color: inherit; }
 .rail-btn { border:0; background:transparent; color:#467aaf; padding:0; cursor:pointer; }
 .rail-btn.active { color:#0878fa; }
 .rail-spacer { flex:1; }
-.analysis-success { font-size:11px; color:#1b79ef; writing-mode:vertical-rl; letter-spacing:1px; display:flex; align-items:center; gap:5px; }
+.analysis-success { border:0; background:transparent; padding:0; font-size:11px; color:#1b79ef; writing-mode:vertical-rl; letter-spacing:1px; display:flex; align-items:center; gap:5px; }
+.analysis-success.air-entry { cursor:pointer; }
+.analysis-success.air-entry:hover { color:#005dcc; }
 .success-dot { width:18px; height:18px; border-radius:50%; color:#fff; background:#2e83f5; display:grid; place-items:center; writing-mode:horizontal-tb; font-size:12px; }
+
+/* PACS report editor */
+.pacs-shell { min-width:0; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) 344px 37px; gap:8px; }
+.pacs-report, .pacs-library { min-height:0; overflow:hidden; }
+.pacs-report-scroll { height:100%; overflow-y:auto; padding:16px 58px 34px; scrollbar-width:thin; scrollbar-color:#aeb8c6 transparent; }
+.pacs-document-head { position:relative; height:53px; display:grid; grid-template-columns:220px 1fr 100px; align-items:center; }
+.pacs-document-head h1 { margin:0; text-align:center; font-size:23px; color:#2a2f37; letter-spacing:1px; }
+.pacs-status { display:flex; gap:22px; align-items:center; }
+.pacs-status > span { padding:7px 20px; border-radius:22px; background:#daa1fa; color:#563166; font-size:14px; }
+.pacs-status .select-like { width:165px; height:35px; }
+.ct-mark { justify-self:end; padding-right:8px; color:#cbdcff; font-size:39px; font-weight:800; font-style:italic; }
+.patient-summary { position:relative; display:grid; grid-template-columns:1fr 1.05fr 1fr; gap:13px 24px; min-height:96px; padding:20px 16px; border-radius:5px; background:#f6f6f6; color:#323943; font-size:14px; }
+.patient-summary button { position:absolute; right:12px; top:12px; border:0; background:transparent; color:#1578f5; cursor:pointer; }
+.pacs-field { margin-top:14px; }
+.pacs-label { height:30px; display:flex; justify-content:space-between; align-items:center; color:#1876ee; font-size:15px; font-weight:650; }
+.pacs-label b, .pacs-options b { color:#ff6058; font-weight:600; }
+.text-tools { display:flex; align-items:center; gap:10px; color:#727b88; font-weight:400; }
+.text-tools button { min-width:50px; height:30px; border:1px solid #dbe3ee; border-radius:5px; background:#fff; color:#66707e; cursor:pointer; }
+.textarea-wrap { position:relative; }
+.pacs-field textarea { width:100%; resize:none; outline:none; border:0; border-radius:5px; background:#f1f3f9; padding:13px 14px 45px; color:#3b424c; font:15px/1.65 "PingFang SC", "Microsoft YaHei", sans-serif; }
+.findings-field textarea { height:320px; }
+.diagnosis-field textarea { height:212px; }
+.pacs-field textarea:focus { box-shadow:inset 0 0 0 1px #9fc6ff; background:#f5f8fd; }
+.mic { position:absolute; right:12px; bottom:12px; width:38px; height:38px; display:grid; place-items:center; border-radius:50%; background:#fff; color:#66717f; font-size:19px; box-shadow:0 2px 8px rgba(45,63,89,.22); }
+.ordered-icon { font-size:25px; font-weight:400; color:#1778f4; }
+.pacs-options { display:grid; grid-template-columns:1fr 1fr; gap:18px 38px; padding:15px 24px; color:#313944; font-size:14px; }
+.pacs-options label { display:flex; align-items:center; gap:8px; }
+.pacs-options em { color:#1879f5; font-style:normal; }
+.radio { width:15px; height:15px; border:1px solid #d6dee9; border-radius:50%; background:#fff; }
+.radio.active { border:4px solid #3588f7; }
+.pacs-options input { width:220px; height:34px; border:1px solid #d9e2ee; border-radius:4px; outline:none; }
+.pacs-select { width:230px; color:#414b59; }
+
+.pacs-library { background:#fff; display:grid; grid-template-rows:49px 58px minmax(0,1fr); }
+.library-tabs { display:grid; grid-template-columns:1fr 1fr 1fr; border-bottom:1px solid #e2e8f1; }
+.library-tabs button { position:relative; border:0; background:#fff; color:#4f5661; font-size:14px; cursor:pointer; }
+.library-tabs button.active { color:#1677f5; font-weight:650; }
+.library-tabs button.active::after { content:""; position:absolute; height:3px; left:29px; right:29px; bottom:0; border-radius:2px 2px 0 0; background:#1677f5; }
+.library-search { position:relative; margin:14px 17px 9px; }
+.library-search input { width:100%; height:36px; padding:0 38px 0 12px; border:1px solid #dbe3ee; border-radius:4px; outline:none; color:#4c5665; }
+.library-search .icon { position:absolute; right:11px; top:9px; color:#9aa4b2; }
+.template-tree { min-height:0; overflow-y:auto; padding:10px 15px 18px; color:#596370; scrollbar-width:thin; }
+.tree-folder { height:37px; display:flex; align-items:center; font-size:14px; }
+.tree-folder.level2 { padding-left:20px; }
+.tree-item { width:100%; min-height:37px; display:flex; align-items:center; gap:8px; padding:7px 8px 7px 48px; border:0; background:transparent; color:#616b78; text-align:left; cursor:pointer; font-size:13px; }
+.tree-item:hover { color:#1375ef; background:#f3f8ff; }
+.tree-item .icon { flex:0 0 auto; color:#7f8996; }
+.tree-empty { padding:30px 0; text-align:center; color:#a5adba; }
 
 .toast { position:fixed; z-index:50; left:50%; top:24px; transform:translate(-50%,-14px); opacity:0; pointer-events:none; min-width:260px; padding:12px 18px; text-align:center; border-radius:6px; background:rgba(24,37,59,.93); color:#fff; box-shadow:0 8px 25px rgba(0,0,0,.2); transition:.22s ease; font-size:14px; }
 .toast.show { opacity:1; transform:translate(-50%,0); }
@@ -169,6 +219,12 @@ button { color: inherit; }
   .toolbar-group.tools { width:445px; flex-basis:445px; }
   .tools .tool-action { min-width:0; font-size:11px; }
   .btn { padding:0 14px; }
+  .pacs-shell { grid-template-columns:minmax(0,1fr) 290px 37px; }
+  .pacs-report-scroll { padding-left:28px; padding-right:28px; }
+  .pacs-document-head { grid-template-columns:180px 1fr 70px; }
+  .pacs-status { gap:8px; }
+  .pacs-status .select-like { width:120px; }
+  .patient-summary { gap:10px 14px; }
 }
 
 @media (max-height: 810px) {
@@ -185,4 +241,10 @@ button { color: inherit; }
   .report-footer { padding:0 16px; }
   .footer-btn { height:38px; }
   .organize small { display:none; }
+  .pacs-report-scroll { padding-top:8px; }
+  .pacs-document-head { height:46px; }
+  .patient-summary { min-height:80px; padding-top:13px; padding-bottom:13px; }
+  .findings-field textarea { height:230px; }
+  .diagnosis-field textarea { height:155px; }
+  .pacs-options { gap:11px 24px; padding-top:10px; }
 }

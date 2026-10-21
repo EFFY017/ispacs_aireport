@@ -28,6 +28,12 @@ const templates = [
   { name: "眶内壁凹陷", finding: "一侧眶内壁局部凹陷。", diagnosis: "眶内壁凹陷。", source: "AIR默认" }
 ];
 
+const pacsTemplates = [
+  "颅脑CT平扫未见异常", "脑萎缩", "脑白质改变", "腔隙性脑梗死灶", "陈旧性脑梗死",
+  "脑出血", "硬膜下血肿", "蛛网膜下腔出血", "透明隔腔", "蛛网膜囊肿",
+  "鼻窦炎", "鼻中隔偏曲", "颅骨骨瘤", "乳突炎", "颅内钙化"
+];
+
 const iconPaths = {
   power: '<path d="M12 2v10"/><path d="M6.3 5.3a8 8 0 1 0 11.4 0"/>',
   save: '<path d="M5 3h11l3 3v15H5z"/><path d="M8 3v6h8V3"/><path d="M8 21v-7h8v7"/>',
@@ -55,6 +61,7 @@ const iconPaths = {
 const icon = (name, cls = '') => `<svg class="icon ${cls}" viewBox="0 0 24 24" aria-hidden="true">${iconPaths[name] || iconPaths.file}</svg>`;
 
 const state = {
+  currentView: 'air',
   selectedPatient: 1,
   selectedLink: 1,
   patientQuery: '',
@@ -68,11 +75,106 @@ const state = {
     { id: 1, text: "脑萎缩。" },
     { id: 3, text: "鼻中隔偏曲。" }
   ],
-  undoStack: []
+  undoStack: [],
+  pacsDrafts: {}
 };
 
 function tool(label, iconName, blue = false) {
   return `<button class="tool-action ${blue ? 'blue' : ''}" data-generic="${label}">${icon(iconName)}<span>${label}</span></button>`;
+}
+
+function airViewMarkup() {
+  return `<section class="report-shell">
+    <article class="report-main">
+      <header class="report-head">
+        <div class="report-title"><strong>AIR 报告</strong><span>颅脑 CT 平扫</span></div>
+        <div class="head-actions"><button class="btn" id="back-pacs">返回 PACS 编辑</button><button class="btn" id="negative-template">一键阴性模板</button><button class="btn primary" id="quote-pacs">引用到 PACS 报告</button></div>
+      </header>
+      <div class="specialty-wrap">
+        <section class="specialty-panel">
+          <h2 class="section-title">AI 专项辅助分析</h2>
+          <div class="specialty-cards">
+            <button class="specialty-card active" id="hemorrhage-card"><span class="specialty-icon">${icon('brain')}</span><span><div class="specialty-name">脑出血 AI 辅助诊断</div><div class="specialty-link">查看结果 ›</div></span></button>
+            <button class="specialty-card disabled"><span class="specialty-icon">${icon('brain')}</span><span><div class="specialty-name">颅脑 CTA</div><div class="specialty-muted">预留入口</div></span></button>
+            <button class="specialty-card disabled"><span class="specialty-icon">${icon('lungs')}</span><span><div class="specialty-name">脑 CTP</div><div class="specialty-muted">预留入口</div></span></button>
+          </div>
+        </section>
+      </div>
+      <div class="editor-layout">
+        <aside class="template-panel">
+          <h2 class="section-title">快捷模板</h2>
+          <label class="template-search"><input id="template-search" placeholder="搜索模板关键词" value="${state.templateQuery}"/>${icon('search')}</label>
+          <div class="template-grid" id="template-grid"></div>
+        </aside>
+        <section class="editor-panel">
+          <div class="report-section"><h3>影像所见</h3><div class="report-box" id="findings-box"></div></div>
+          <div class="report-section"><h3>诊断意见</h3><div class="report-box" id="diagnoses-box"></div></div>
+        </section>
+      </div>
+      <footer class="report-footer">
+        <div class="footer-left"><button class="footer-btn" id="undo">${icon('undo','sm')}撤销</button><button class="footer-btn" id="original-report">${icon('copy','sm')}查看原始报告</button></div>
+        <div class="organize"><button class="btn" id="organize-report">整理报告</button><small>基于当前编辑内容整理报告</small></div>
+      </footer>
+    </article>
+    ${rightRailMarkup(false)}
+  </section>`;
+}
+
+function getPacsDraft() {
+  if (!state.pacsDrafts[state.selectedPatient]) {
+    state.pacsDrafts[state.selectedPatient] = {
+      findings: '双侧大脑半球对称，脑实质未见明显异常密度影。脑室系统形态、大小正常，中线结构居中。',
+      diagnosis: '颅脑 CT 平扫未见明显异常。',
+      imported: false
+    };
+  }
+  return state.pacsDrafts[state.selectedPatient];
+}
+
+function pacsViewMarkup() {
+  const patient = patients.find(p => p.id === state.selectedPatient);
+  const draft = getPacsDraft();
+  return `<section class="pacs-shell">
+    <article class="pacs-report panel">
+      <div class="pacs-report-scroll">
+        <header class="pacs-document-head">
+          <div class="pacs-status"><span>诊断中</span><div class="select-like">请选择</div></div>
+          <h1>放射检查报告单</h1><div class="ct-mark">CT</div>
+        </header>
+        <section class="patient-summary">
+          <div>姓名: <strong>${patient.name}</strong></div><div>性别: ${patient.gender}&nbsp;&nbsp; 年龄: ${patient.age}岁</div><div>检查号: R260813${String(patient.id).padStart(4,'0')}</div>
+          <div>检查部位: 颅脑</div><div>检查项目: * CT颅脑(平扫)</div><button title="编辑患者信息">${icon('diagnose','sm')}</button>
+        </section>
+        <section class="pacs-field findings-field">
+          <div class="pacs-label"><span><b>*</b> 影像所见</span><div class="text-tools"><button title="撤销">↶</button><button>A+</button><button>A-</button><span>18px</span></div></div>
+          <div class="textarea-wrap"><textarea id="pacs-findings" spellcheck="false">${draft.findings}</textarea><span class="mic">◉</span></div>
+        </section>
+        <section class="pacs-field diagnosis-field">
+          <div class="pacs-label"><span><b>*</b> 诊断意见</span><span class="ordered-icon">☷</span></div>
+          <div class="textarea-wrap"><textarea id="pacs-diagnosis" spellcheck="false">${draft.diagnosis}</textarea><span class="mic">◉</span></div>
+        </section>
+        <section class="pacs-options">
+          <label><b>*</b> 危急值: <span class="radio active"></span><em>不上报</em><span class="radio"></span>上报</label>
+          <label><b>*</b> HP: <span class="radio active"></span><em>阴性(-)</em><span class="radio"></span>阳性(+)</label>
+          <label>片序: <input /></label><label><b>*</b> 模板: <span class="select-like pacs-select">放射模板</span></label>
+          <div>诊断医生: <strong>中心管理员</strong></div><div>诊断时间: <strong>2026-10-21 14:35</strong></div>
+        </section>
+      </div>
+    </article>
+    <aside class="pacs-library panel">
+      <div class="library-tabs"><button class="active">公共模板</button><button>个人模板</button><button>常用词条</button></div>
+      <label class="library-search"><input id="pacs-template-search" placeholder="输入关键词"/>${icon('search','sm')}</label>
+      <div class="template-tree"><div class="tree-folder">⌄&nbsp; ▱ CT</div><div class="tree-folder level2">⌄&nbsp; ▱ 颅脑</div><div id="pacs-template-list"></div></div>
+    </aside>
+    ${rightRailMarkup(true)}
+  </section>`;
+}
+
+function rightRailMarkup(isPacs) {
+  return `<aside class="right-rail" aria-label="快捷工具">
+    <button class="rail-btn active">${icon('grid')}</button><button class="rail-btn">${icon('message')}</button><button class="rail-btn">${icon('file')}</button><button class="rail-btn">${icon('image')}</button><button class="rail-btn">${icon('list')}</button><button class="rail-btn">${icon('search')}</button><button class="rail-btn">${icon('flag')}</button><button class="rail-btn">${icon('plusbox')}</button>
+    <div class="rail-spacer"></div><button class="analysis-success ${isPacs ? 'air-entry' : ''}" ${isPacs ? 'id="air-entry" title="返回 AIR 报告"' : ''}><span class="success-dot">✓</span><span>分析成功</span></button>
+  </aside>`;
 }
 
 function renderApp() {
@@ -107,51 +209,16 @@ function renderApp() {
           </div>
         </nav>
 
-        <section class="report-shell">
-          <article class="report-main">
-            <header class="report-head">
-              <div class="report-title"><strong>AIR 报告</strong><span>颅脑 CT 平扫</span></div>
-              <div class="head-actions"><button class="btn" id="back-pacs">返回 PACS 编辑</button><button class="btn" id="negative-template">一键阴性模板</button><button class="btn primary" id="quote-pacs">引用到 PACS 报告</button></div>
-            </header>
-
-            <div class="specialty-wrap">
-              <section class="specialty-panel">
-                <h2 class="section-title">AI 专项辅助分析</h2>
-                <div class="specialty-cards">
-                  <button class="specialty-card active" id="hemorrhage-card"><span class="specialty-icon">${icon('brain')}</span><span><div class="specialty-name">脑出血 AI 辅助诊断</div><div class="specialty-link">查看结果 ›</div></span></button>
-                  <button class="specialty-card disabled"><span class="specialty-icon">${icon('brain')}</span><span><div class="specialty-name">颅脑 CTA</div><div class="specialty-muted">预留入口</div></span></button>
-                  <button class="specialty-card disabled"><span class="specialty-icon">${icon('lungs')}</span><span><div class="specialty-name">脑 CTP</div><div class="specialty-muted">预留入口</div></span></button>
-                </div>
-              </section>
-            </div>
-
-            <div class="editor-layout">
-              <aside class="template-panel">
-                <h2 class="section-title">快捷模板</h2>
-                <label class="template-search"><input id="template-search" placeholder="搜索模板关键词" value="${state.templateQuery}"/>${icon('search')}</label>
-                <div class="template-grid" id="template-grid"></div>
-              </aside>
-              <section class="editor-panel">
-                <div class="report-section"><h3>影像所见</h3><div class="report-box" id="findings-box"></div></div>
-                <div class="report-section"><h3>诊断意见</h3><div class="report-box" id="diagnoses-box"></div></div>
-              </section>
-            </div>
-
-            <footer class="report-footer">
-              <div class="footer-left"><button class="footer-btn" id="undo">${icon('undo','sm')}撤销</button><button class="footer-btn" id="original-report">${icon('copy','sm')}查看原始报告</button></div>
-              <div class="organize"><button class="btn" id="organize-report">整理报告</button><small>基于当前编辑内容整理报告</small></div>
-            </footer>
-          </article>
-          <aside class="right-rail" aria-label="快捷工具">
-            <button class="rail-btn active">${icon('grid')}</button><button class="rail-btn">${icon('message')}</button><button class="rail-btn">${icon('file')}</button><button class="rail-btn">${icon('image')}</button><button class="rail-btn">${icon('list')}</button><button class="rail-btn">${icon('search')}</button><button class="rail-btn">${icon('flag')}</button><button class="rail-btn">${icon('plusbox')}</button>
-            <div class="rail-spacer"></div><div class="analysis-success"><span class="success-dot">✓</span><span>分析成功</span></div>
-          </aside>
-        </section>
+        ${state.currentView === 'air' ? airViewMarkup() : pacsViewMarkup()}
       </section>
     </main>`;
   renderPatients();
-  renderTemplates();
-  renderReport();
+  if (state.currentView === 'air') {
+    renderTemplates();
+    renderReport();
+  } else {
+    renderPacsTemplates();
+  }
   bindEvents();
 }
 
@@ -167,7 +234,7 @@ function renderPatients() {
     saveUndo(); state.selectedPatient = Number(row.dataset.patient); state.selectedLink = 0;
     state.findings = [{ id: 1, text: '脑沟、脑裂增宽。' }, { id: 2, text: '中线结构居中。' }, { id: 3, text: '鼻中隔向左偏曲。' }];
     state.diagnoses = [{ id: 1, text: '脑萎缩。' }, { id: 3, text: '鼻中隔偏曲。' }];
-    renderPatients(); renderReport(); toast(`已打开 ${patients.find(p => p.id === state.selectedPatient).name} 的 AIR 报告`);
+    renderApp(); toast(`已打开 ${patients.find(p => p.id === state.selectedPatient).name} 的${state.currentView === 'air' ? ' AIR' : ' PACS'}报告`);
   }));
 }
 
@@ -176,6 +243,20 @@ function renderTemplates() {
   const list = templates.filter(t => !q || `${t.name}${t.finding}${t.diagnosis}${t.source}`.toLowerCase().includes(q));
   document.querySelector('#template-grid').innerHTML = list.length ? list.map((t, i) => `<button class="template-btn" data-template="${templates.indexOf(t)}" title="${t.source}：${t.finding} / ${t.diagnosis}"><span>${t.name}</span><span class="plus">＋</span></button>`).join('') : '<div class="loading-empty" style="grid-column:1/-1">未找到模板</div>';
   document.querySelectorAll('[data-template]').forEach(btn => btn.addEventListener('click', () => insertTemplate(Number(btn.dataset.template))));
+}
+
+function renderPacsTemplates(query = '') {
+  const container = document.querySelector('#pacs-template-list');
+  if (!container) return;
+  const q = query.trim().toLowerCase();
+  const list = pacsTemplates.filter(item => !q || item.toLowerCase().includes(q));
+  container.innerHTML = list.length ? list.map(item => `<button class="tree-item" data-pacs-template="${item}">${icon('file','sm')}<span>${item}</span></button>`).join('') : '<div class="tree-empty">未找到匹配模板</div>';
+  document.querySelectorAll('[data-pacs-template]').forEach(button => button.addEventListener('click', () => {
+    const draft = getPacsDraft();
+    draft.diagnosis = `${draft.diagnosis.trim()}${draft.diagnosis.trim() ? '\n' : ''}${button.dataset.pacsTemplate}。`;
+    document.querySelector('#pacs-diagnosis').value = draft.diagnosis;
+    toast(`已插入公共模板“${button.dataset.pacsTemplate}”`);
+  }));
 }
 
 function renderReport() {
@@ -235,20 +316,31 @@ function bindEvents() {
     state.patientQuery = document.querySelector('#patient-search').value; renderPatients();
   });
   document.querySelector('#patient-search').addEventListener('keydown', e => { if (e.key === 'Enter') { state.patientQuery = e.target.value; renderPatients(); } });
-  document.querySelector('#template-search').addEventListener('input', e => { state.templateQuery = e.target.value; renderTemplates(); });
-  document.querySelector('#negative-template').addEventListener('click', () => {
+  document.querySelector('#template-search')?.addEventListener('input', e => { state.templateQuery = e.target.value; renderTemplates(); });
+  document.querySelector('#negative-template')?.addEventListener('click', () => {
     saveUndo(); state.findings = [{ id: 101, text: '颅脑形态正常，脑实质未见明显异常密度影，中线结构居中。' }];
     state.diagnoses = [{ id: 101, text: '颅脑 CT 平扫未见明显异常。' }]; state.selectedLink = 101; renderReport(); toast('已替换为本院颅脑 CT 阴性模板，可继续编辑');
   });
-  document.querySelector('#undo').addEventListener('click', () => {
+  document.querySelector('#undo')?.addEventListener('click', () => {
     const snapshot = state.undoStack.pop(); if (!snapshot) return toast('暂无可撤销的操作');
     state.findings = snapshot.findings; state.diagnoses = snapshot.diagnoses; state.selectedLink = 0; renderReport(); toast('已撤销上一步操作');
   });
-  document.querySelector('#original-report').addEventListener('click', () => openModal('模型原始报告', '影像所见\n脑沟、脑裂增宽。中线结构居中。鼻中隔向左偏曲。\n\n诊断意见\n1. 脑萎缩。\n2. 鼻中隔偏曲。'));
-  document.querySelector('#organize-report').addEventListener('click', organizeReport);
-  document.querySelector('#back-pacs').addEventListener('click', () => toast('AIR 工作草稿已暂存，已返回 PACS 编辑'));
-  document.querySelector('#quote-pacs').addEventListener('click', () => openModal('引用到 PACS 报告', '将用当前 AIR 编辑稿替换 PACS 中的影像所见和诊断意见。\n\n引用仅写入编辑框，不会自动发布正式报告。', true));
-  document.querySelector('#hemorrhage-card').addEventListener('click', () => openModal('脑出血 AI 辅助诊断', '本次检查未检出明确颅内出血征象。\n\n演示说明：进入专项分析前，当前 AIR 草稿已自动暂存。'));
+  document.querySelector('#original-report')?.addEventListener('click', () => openModal('模型原始报告', '影像所见\n脑沟、脑裂增宽。中线结构居中。鼻中隔向左偏曲。\n\n诊断意见\n1. 脑萎缩。\n2. 鼻中隔偏曲。'));
+  document.querySelector('#organize-report')?.addEventListener('click', organizeReport);
+  document.querySelector('#back-pacs')?.addEventListener('click', () => {
+    state.currentView = 'pacs'; renderApp(); toast('已返回 PACS 编辑，PACS 原报告内容保持不变');
+  });
+  document.querySelector('#quote-pacs')?.addEventListener('click', () => {
+    const draft = getPacsDraft();
+    draft.findings = state.findings.map(item => item.text).join('\n');
+    draft.diagnosis = state.diagnoses.map(item => item.text).join('\n');
+    draft.imported = true; state.currentView = 'pacs'; renderApp(); toast('AIR 报告已同步到 PACS 编辑框，尚未发布');
+  });
+  document.querySelector('#hemorrhage-card')?.addEventListener('click', () => openModal('脑出血 AI 辅助诊断', '本次检查未检出明确颅内出血征象。\n\n演示说明：进入专项分析前，当前 AIR 草稿已自动暂存。'));
+  document.querySelector('#air-entry')?.addEventListener('click', () => { state.currentView = 'air'; renderApp(); toast('已恢复当前检查的 AIR 工作草稿'); });
+  document.querySelector('#pacs-findings')?.addEventListener('input', e => { getPacsDraft().findings = e.target.value; });
+  document.querySelector('#pacs-diagnosis')?.addEventListener('input', e => { getPacsDraft().diagnosis = e.target.value; });
+  document.querySelector('#pacs-template-search')?.addEventListener('input', e => renderPacsTemplates(e.target.value));
   document.querySelectorAll('[data-generic]').forEach(btn => btn.addEventListener('click', () => toast(`${btn.dataset.generic}：演示操作已响应`)));
   document.querySelectorAll('.rail-btn').forEach(btn => btn.addEventListener('click', () => { document.querySelectorAll('.rail-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }));
 }
