@@ -90,7 +90,12 @@ button { color: inherit; }
 .toolbar-separator { width:1px; background:#edf1f6; margin:12px 0; }
 
 .report-shell { display:grid; grid-template-columns:minmax(0,1fr) 37px; gap:8px; min-height:0; }
-.report-main { min-width:0; min-height:0; background:#fff; border:1px solid #e3eaf4; border-radius:5px; box-shadow:0 2px 12px rgba(62,91,130,.06); display:grid; grid-template-rows:70px 136px minmax(0,1fr) 111px; }
+.report-main { position:relative; min-width:0; min-height:0; background:#fff; border:1px solid #e3eaf4; border-radius:5px; box-shadow:0 2px 12px rgba(62,91,130,.06); display:grid; grid-template-rows:70px 136px minmax(0,1fr) 111px; }
+.report-main.is-organizing .specialty-wrap, .report-main.is-organizing .editor-layout, .report-main.is-organizing .report-footer { pointer-events:none; opacity:.58; }
+.organizing-status { position:absolute; z-index:30; top:79px; left:50%; transform:translateX(-50%); min-width:340px; min-height:52px; display:flex; align-items:center; justify-content:center; gap:11px; padding:9px 18px; border:1px solid #b9d6fb; border-radius:7px; background:rgba(255,255,255,.98); color:#52647b; box-shadow:0 8px 24px rgba(42,83,137,.16); font-size:12px; }
+.organizing-status b { display:block; margin-bottom:2px; color:#1a67c8; font-size:14px; }
+.organizing-spinner { width:22px; height:22px; flex:0 0 auto; border:3px solid #d9e9fd; border-top-color:#247df2; border-radius:50%; animation:organizing-spin .8s linear infinite; }
+@keyframes organizing-spin { to { transform:rotate(360deg); } }
 .report-head { display:flex; align-items:center; justify-content:space-between; padding:0 18px; border-bottom:1px solid #e6edf6; }
 .report-title { display:flex; align-items:center; gap:15px; font-size:18px; font-weight:700; }
 .report-title strong { color:#075ebf; font-size:23px; letter-spacing:.5px; }
